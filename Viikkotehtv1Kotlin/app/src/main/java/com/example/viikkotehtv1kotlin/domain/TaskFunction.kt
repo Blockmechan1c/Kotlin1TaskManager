@@ -1,5 +1,7 @@
 package com.example.viikkotehtv1kotlin.domain
 
+import com.example.viikkotehtv1kotlin.domain.model.Task
+
 fun addTask(list: List<Task>, task: Task): List<Task> {
     return list + task
 }

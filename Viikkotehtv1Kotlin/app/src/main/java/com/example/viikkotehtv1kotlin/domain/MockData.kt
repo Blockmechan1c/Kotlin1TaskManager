@@ -1,9 +1,10 @@
 package com.example.viikkotehtv1kotlin.domain
 
+import com.example.viikkotehtv1kotlin.domain.model.Task
 import java.time.LocalDate;
 
 val mockTasks = listOf(
-    Task(1,"juo vettä", "ota lasi ja laita vettä siihen ja juo", 1, LocalDate.now(), true),
+    Task(1, "juo vettä", "ota lasi ja laita vettä siihen ja juo", 1, LocalDate.now(), true),
     Task(2, "syö", "ota ruokaa ja syö", 2, LocalDate.now(), false),
     Task(3, "Katso One Piece", "Avaa crunchyroll ja katso One Piece", 3, LocalDate.now(), true),
     Task(4, "nuku", "mene nukkumaan", 4, LocalDate.now(), true),
