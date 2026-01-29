@@ -66,16 +66,54 @@ The task list updates automatically using remember { mutableStateOf(...) }.
 
 
 WEEK2
-Compose‑tilanhallinta 
+Compose State Management
+Jetpack Compose updates the UI automatically whenever the underlying state changes.
+mutableStateOf makes a variable reactive, meaning Compose will recompose the UI when its value changes.
+remember stores that state only as long as the Composable is in memory — if the Composable is destroyed and recreated, the value resets.
 
-Jetpack Compose päivittää käyttöliittymän automaattisesti aina, kun tila muuttuu.
-mutableStateOf tekee muuttujasta reaktiivisen, ja remember säilyttää sen vain niin kauan kuin Composable on elossa.
+Why ViewModel is better than just remember
+Survives configuration changes – remember resets when the screen rotates, but a ViewModel keeps its state.
 
-Miksi ViewModel on parempi kuin pelkkä remember?
-Säilyy ruudun kääntyessä – remember nollaantuu, ViewModel ei.
+Persists across navigation – a Composable can be destroyed and recreated, but the ViewModel stays alive.
 
-Ei katoa navigoidessa – Composable voi tuhoutua, mutta ViewModel pysyy.
+Separates logic from UI – data handling and business logic stay in the ViewModel instead of cluttering the UI layer.
 
-Erottaa logiikan UI:sta – listan käsittely pysyy siististi ViewModelissa.
+Officially recommended by Android – ViewModel is the standard way to manage long‑lived UI state in Android apps.
 
-On Androidin suosittelema tapa hallita sovelluksen pysyvää tilaa.
+
+WEEK3
+What is MVVM and why is it useful in Jetpack Compose
+MVVM (Model–View–ViewModel) is an architecture pattern that separates your app into three parts:
+
+Model – holds the data and business logic
+
+View – the UI layer (Jetpack Compose)
+
+ViewModel – stores UI state and exposes functions for the UI
+
+Jetpack Compose is reactive, meaning the UI automatically updates when the underlying state changes.
+MVVM fits this perfectly because the ViewModel owns the state, and the View simply observes it.
+This keeps the UI clean, testable, and easy to maintain.
+
+How StateFlow works
+StateFlow is a state holder that emits updates to anyone observing it.
+
+Key points:
+
+It always contains one current value
+
+When the value changes, all collectors receive the update
+
+Compose can observe it using collectAsState()
+
+When the ViewModel updates the value, the UI recomposes automatically
+
+Example:
+
+kotlin
+val tasks by viewModel.tasks.collectAsState()
+Whenever the ViewModel does:
+
+kotlin
+_tasks.value = newList
+the UI updates instantly without any manual refresh logic.
