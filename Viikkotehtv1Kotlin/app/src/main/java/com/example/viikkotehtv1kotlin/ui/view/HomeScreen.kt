@@ -3,84 +3,92 @@ package com.example.viikkotehtv1kotlin.ui.view
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.viikkotehtv1kotlin.domain.viewmodel.TaskViewModel
+import androidx.navigation.NavController
 import com.example.viikkotehtv1kotlin.domain.model.Task
+import com.example.viikkotehtv1kotlin.domain.viewmodel.TaskViewModel
+import com.example.viikkotehtv1kotlin.navigation.ROUTE_CALENDAR
+import com.example.viikkotehtv1kotlin.navigation.ROUTE_SETTINGS
 import java.time.LocalDate
 
-@Composable
-fun HomeScreen(taskViewModel: TaskViewModel = viewModel()) {
+enum class SortMode { ALL, DONE, NOT_DONE }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    navController: NavController,
+    taskViewModel: TaskViewModel = viewModel()
+) {
     val tasks by taskViewModel.tasks.collectAsState()
 
-    var newTitle by remember { mutableStateOf("") }
-    var newDescription by remember { mutableStateOf("") }
-    var newDueDate by remember { mutableStateOf(LocalDate.now()) }
-    var showDetail by remember { mutableStateOf<Task?>(null) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var editTask by remember { mutableStateOf<Task?>(null) }
+    var sortMode by remember { mutableStateOf(SortMode.ALL) }
 
-    Column(Modifier.padding(16.dp)) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Tasks") },
+                actions = {
 
-        // Title input
-        OutlinedTextField(
-            value = newTitle,
-            onValueChange = { newTitle = it },
-            label = { Text("New task title") },
-            modifier = Modifier.fillMaxWidth()
-        )
+                    // SORT BUTTON
+                    IconButton(
+                        onClick = {
+                            sortMode = when (sortMode) {
+                                SortMode.ALL -> SortMode.NOT_DONE
+                                SortMode.NOT_DONE -> SortMode.DONE
+                                SortMode.DONE -> SortMode.ALL
+                            }
+                        }
+                    ) {
+                        val label = when (sortMode) {
+                            SortMode.ALL -> "All"
+                            SortMode.NOT_DONE -> "Not done"
+                            SortMode.DONE -> "Done"
+                        }
+                        Text(label)
+                    }
 
-        Spacer(Modifier.height(8.dp))
+                    // ADD TASK
+                    IconButton(onClick = { showAddDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Task")
+                    }
 
-        // Description input
-        OutlinedTextField(
-            value = newDescription,
-            onValueChange = { newDescription = it },
-            label = { Text("Description") },
-            modifier = Modifier.fillMaxWidth()
-        )
+                    // CALENDAR
+                    IconButton(onClick = { navController.navigate(ROUTE_CALENDAR) }) {
+                        Icon(Icons.Default.DateRange, contentDescription = "Calendar")
+                    }
 
-        Spacer(Modifier.height(8.dp))
-
-        // Due date selector (simple +1 day button)
-        Button(
-            onClick = { newDueDate = newDueDate.plusDays(1) }
-        ) {
-            Text("Due date: $newDueDate")
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // Add task button
-        Button(
-            onClick = {
-                if (newTitle.isNotBlank()) {
-                    taskViewModel.addTask(
-                        Task(
-                            id = tasks.size + 1,
-                            title = newTitle,
-                            description = newDescription,
-                            priority = 1,
-                            dueDate = newDueDate,
-                            done = false
-                        )
-                    )
-                    newTitle = ""
-                    newDescription = ""
-                    newDueDate = LocalDate.now()
+                    // SETTINGS
+                    IconButton(onClick = { navController.navigate(ROUTE_SETTINGS) }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
                 }
-            }
-        ) {
-            Text("Add Task")
+            )
+        }
+    ) { padding ->
+
+        // APPLY SORTING
+        val filteredTasks = when (sortMode) {
+            SortMode.ALL -> tasks
+            SortMode.DONE -> tasks.filter { it.done }
+            SortMode.NOT_DONE -> tasks.filter { !it.done }
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        // Task list (sorted by due date in ViewModel)
-        LazyColumn {
-            items(tasks) { task ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            items(filteredTasks) { task ->
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -101,7 +109,7 @@ fun HomeScreen(taskViewModel: TaskViewModel = viewModel()) {
                         Text("Due: ${task.dueDate}", style = MaterialTheme.typography.bodySmall)
                     }
 
-                    Button(onClick = { showDetail = task }) {
+                    Button(onClick = { editTask = task }) {
                         Text("Edit")
                     }
                 }
@@ -109,19 +117,128 @@ fun HomeScreen(taskViewModel: TaskViewModel = viewModel()) {
         }
     }
 
-    // Detail dialog
-    if (showDetail != null) {
-        DetailScreen(
-            task = showDetail!!,
-            onSave = {
-                taskViewModel.updateTask(it)
-                showDetail = null
+    // ADD TASK DIALOG
+    if (showAddDialog) {
+        AddTaskDialog(
+            onSave = { title, desc, date ->
+                taskViewModel.addTask(
+                    Task(
+                        id = tasks.size + 1,
+                        title = title,
+                        description = desc,
+                        priority = 1,
+                        dueDate = date,
+                        done = false
+                    )
+                )
+                showAddDialog = false
+            },
+            onCancel = { showAddDialog = false }
+        )
+    }
+
+    // EDIT TASK DIALOG
+    if (editTask != null) {
+        EditTaskDialog(
+            task = editTask!!,
+            onSave = { updated ->
+                taskViewModel.updateTask(updated)
+                editTask = null
             },
             onDelete = {
                 taskViewModel.removeTask(it.id)
-                showDetail = null
+                editTask = null
             },
-            onDismiss = { showDetail = null }
+            onCancel = { editTask = null }
         )
     }
+}
+
+@Composable
+fun AddTaskDialog(
+    onSave: (String, String, LocalDate) -> Unit,
+    onCancel: () -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var desc by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf(LocalDate.now()) }
+
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Add Task") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") }
+                )
+                OutlinedTextField(
+                    value = desc,
+                    onValueChange = { desc = it },
+                    label = { Text("Description") }
+                )
+                Button(onClick = { date = date.plusDays(1) }) {
+                    Text("Due: $date")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { if (title.isNotBlank()) onSave(title, desc, date) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditTaskDialog(
+    task: Task,
+    onSave: (Task) -> Unit,
+    onDelete: (Task) -> Unit,
+    onCancel: () -> Unit
+) {
+    var title by remember { mutableStateOf(task.title) }
+    var desc by remember { mutableStateOf(task.description) }
+    var date by remember { mutableStateOf(task.dueDate) }
+
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Edit Task") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") }
+                )
+                OutlinedTextField(
+                    value = desc,
+                    onValueChange = { desc = it },
+                    label = { Text("Description") }
+                )
+                Button(onClick = { date = date.plusDays(1) }) {
+                    Text("Due: $date")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onSave(task.copy(title = title, description = desc, dueDate = date))
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onCancel) { Text("Cancel") }
+                TextButton(onClick = { onDelete(task) }) { Text("Delete") }
+            }
+        }
+    )
 }

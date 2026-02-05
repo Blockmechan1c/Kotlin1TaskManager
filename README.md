@@ -117,3 +117,24 @@ Whenever the ViewModel does:
 kotlin
 _tasks.value = newList
 the UI updates instantly without any manual refresh logic.
+
+Week4
+Navigation (Jetpack Compose)
+Navigation in Jetpack Compose means switching between screens using composable functions instead of Activities or Fragments.
+NavController manages the navigation stack, and NavHost defines which composable belongs to each route.
+In this app, navigation is simple: HomeScreen ↔ CalendarScreen, triggered from the TopAppBar buttons.
+
+Architecture (MVVM + Navigation)
+The app uses MVVM. A single shared TaskViewModel provides the task list for both HomeScreen and CalendarScreen.
+Because both screens use the same ViewModel instance, they automatically share state: adding, editing, or deleting a task updates both screens instantly.
+
+CalendarScreen
+CalendarScreen groups tasks by their dueDate and displays them under date headers, creating a simple calendar‑style overview.
+
+Add & Edit (AlertDialog)
+Task creation and editing are handled with AlertDialog:
+
+AddTaskDialog opens from the “+” button and lets the user enter title, description, and due date.
+
+EditTaskDialog opens when selecting a task and shows pre‑filled fields.
+Both dialogs call the ViewModel (addTask, updateTask, removeTask) and close when done.
